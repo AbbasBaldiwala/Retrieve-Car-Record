@@ -71,7 +71,7 @@ void PrintValidRecords(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRe
 void PrintInvalidRecords(string border, string header, string errorFileName, int numInvalid);
 
 //Creates the submenu for searching for a record
-void SearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header);
+void EnterSearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header);
 
 bool IsValidID(string carID, string& errorMessage); //checks if the Car ID is valid
 
@@ -116,7 +116,7 @@ int main() {
 			PrintInvalidRecords(border.str(), header.str(), errorFileName, numInvalidRec);
 			break;
 		case RETRIEVE_RECORD:
-			SearchSubMenu(validRecords, numValidRec, userChoiceMainMenu, border.str(), header.str());
+			EnterSearchSubMenu(validRecords, numValidRec, userChoiceMainMenu, border.str(), header.str());
 			break;
 		case QUIT:
 			break;
@@ -354,44 +354,19 @@ void SearchByModelOrID(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRe
 	cout << "\nEnter the keyword you want to search by: \n";
 	cin >> keyWord;
 	keyWord = ToUpper(keyWord);
-	int keyWordLen = keyWord.length();
-	string result;
 	for (int i = 0; i < numValidRec; i++) {
-		//if( 
 		string tempModel = validRec[i].GetModel(),
 			tempID = validRec[i].GetID();
-		int modelLen = tempModel.length(),
-			idLen = CORRECT_ID_LEN;
 		bool foundModel = false;
-		//searches to see if the key word is in the Model Name
-		for (int j = 0; j <= modelLen - keyWordLen; ++j) {
-			bool found = true;
-			for (int k = 0; k < keyWordLen; ++k) {
-				if (tempModel[j + k] != keyWord[k]) {
-					found = false;
-					k = keyWordLen;
-				}
-			}
-			if (found) {
-				recordsFound += validRec[i].ToString() + "\n";
-				foundModel = true;
-				j = (modelLen - keyWordLen) + 1;
-			}
+		size_t pos = tempModel.find(keyWord);
+		if (pos != std::string::npos) {
+			recordsFound += validRec[i].ToString() + "\n";
+			foundModel = true;
 		}
-		// if Key Word not in model name, searches to see if Key word is in the Car ID
 		if (!foundModel) {
-			for (int j = 0; j <= idLen - keyWordLen; ++j) {
-				bool found = true;
-				for (int k = 0; k < keyWordLen; ++k) {
-					if (tempID[j + k] != keyWord[k]) {
-						found = false;
-						k = keyWordLen;
-					}
-				}
-				if (found) {
-					recordsFound += validRec[i].ToString() + "\n";
-					j = (modelLen - keyWordLen) + 1;
-				}
+			size_t pos = tempID.find(keyWord);
+			if (pos != std::string::npos) {
+				recordsFound += validRec[i].ToString() + "\n";
 			}
 		}
 	}
@@ -407,7 +382,7 @@ void SearchByModelOrID(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRe
 	}
 }
 
-void SearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header) {
+void EnterSearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header) {
 	int userChoiceSearchMenu;
 	do {
 		cout << "\n\nSEARCH BY: \n"
