@@ -15,37 +15,17 @@ const double SEARCH_PRICE_RANGE = 0.15;
 
 class CarRecord {
 public:
-	CarRecord() {
-		SetRecord("", "", 0, 0);
-	}
+	CarRecord() { SetRecord("", "", 0, 0); }
 
-	void SetRecord(string ID, string modelName, int quantityOnHand, double cost) {
-		carID = ID;
-		model = modelName;
-		quantity = quantityOnHand;
-		price = cost;
-	}
+	void SetRecord(string ID, string modelName, int quantityOnHand, double cost);
 
-	string ToString() const {
-		stringstream ss;
-		ss << setw(SETW_ID) << left << carID
-			<< setw(SETW_MODEL) << model
-			<< setw(SETW_QUANTITY) << right << quantity
-			<< setw(SETW_PRICE) << fixed << setprecision(SETPRECISION) << price;
-		return ss.str();
-	}
+	string ToString() const; //returns formatted output as a string
 
-	double GetPrice() const {
-		return price;
-	}
+	double GetPrice() const { return price; }
 
-	string GetModel() const {
-		return model;
-	}
+	string GetModel() const { return model; }
 
-	string GetID() const {
-		return carID;
-	}
+	string GetID() const { return carID; }
 
 private:
 	string carID, model;
@@ -57,21 +37,21 @@ enum Menu {
 	PRINT_VALID = 1, PRINT_INVALID = 2, RETRIEVE_RECORD = 3, QUIT = 4
 };
 
-enum SearchByMenu {
+enum SearchMenu {
 	CAR_ID_OR_NAME = 1, PRICE = 2, GO_BACK = 3
 };
 
 //Gets the data from the input file and writes all invalid data to error file
-void GetData(CarRecord validRec[MAX_NUM_RECORDS], int& numValidRec, int& numInvalidRec, string errorFileName, string inputFileName);
+void GetData(CarRecord validRec[], int& numValidRec, int& numInvalidRec, string errorFileName, string inputFileName);
 
 //prints valid records to screen in table format
-void PrintValidRecords(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header);
+void PrintValidRecords(const CarRecord validRec[], int numValidRec, string border, string header);
 
 //prints invalid records to screen in table format
 void PrintInvalidRecords(string border, string header, string errorFileName, int numInvalid);
 
 //Creates the submenu for searching for a record
-void EnterSearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header);
+void EnterSearchSubMenu(const CarRecord validRec[], int numValidRec, int& userChoiceMainMenu, string border, string header);
 
 bool IsValidID(string carID, string& errorMessage); //checks if the Car ID is valid
 
@@ -81,25 +61,38 @@ bool IsValidQuantity(int quantity, string& errorMessage); //checks if the quanti
 
 bool IsValidPrice(double price, string& errorMessage); //checks if the price is valid
 
+bool IsValidRecord(string id, string model, int quantity, double price, string& errMsg); //checks if the record is valid
+
 string ToUpper(string str); //returns string converted to upper case
 
 void ClearInvalidInput(string errMsg); //clears cin, clears the keyboard buffer, prints an error message
 
-//searches the records by Car ID or Model Name and outputs any records that matches the search
-void SearchByModelOrID(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header);
+//searches the records by Car ID or Model Name
+string SearchByIdOrModel(const CarRecord validRec[], int numValidRec, string keyWord);
 
-//searches the records by price and outputs any record that matches the search
-void SearchByPrice(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header);
+//searches the records by price
+string SearchByPrice(const CarRecord validRec[], int numValidRec, double lowerBound, double upperBound);
+
+//Outputs any records that matches the search
+void PrintSearchResultsIdOrModel(const CarRecord validRec[], int numValidRec, string border, string header);
+
+//Outputs any record that matches the search
+void PrintSearchResultsPrice(const CarRecord validRec[], int numValidRec, string border, string header);
 
 int main() {
 	int userChoiceMainMenu, numValidRec = 0, numInvalidRec = 0;
-	stringstream border, header;
+	stringstream borderSS, headerSS;
 	CarRecord validRecords[MAX_NUM_RECORDS];
-	string inputFileName = "test.txt", errorFileName = "InvalidRecords.txt";
+	string inputFileName = "test.txt", errorFileName = "InvalidRecords.txt", border, header;
 	GetData(validRecords, numValidRec, numInvalidRec, errorFileName, inputFileName);
 
-	border << setfill('-') << setw(TABLE_LENGTH) << "";
-	header << setw(SETW_ID) << left << "Car ID" << setw(SETW_MODEL) << "Model" << setw(SETW_QUANTITY) << right << "Quantity" << setw(SETW_PRICE + 1) << "Price\n" << endl;
+	cout << fixed << setprecision(SETPRECISION);
+
+	borderSS << setfill('-') << setw(TABLE_LENGTH) << "";
+	headerSS << setw(SETW_ID) << left << "Car ID" << setw(SETW_MODEL) << "Model" << setw(SETW_QUANTITY) << right << "Quantity" << setw(SETW_PRICE + 1) << "Price\n" << endl;
+
+	border = borderSS.str();
+	header = headerSS.str();
 
 	do {
 		cout << "\n\nMENU: \n"
@@ -110,13 +103,13 @@ int main() {
 		cin >> userChoiceMainMenu;
 		switch (userChoiceMainMenu) {
 		case PRINT_VALID:
-			PrintValidRecords(validRecords, numValidRec, border.str(), header.str());
+			PrintValidRecords(validRecords, numValidRec, border, header);
 			break;
 		case PRINT_INVALID:
-			PrintInvalidRecords(border.str(), header.str(), errorFileName, numInvalidRec);
+			PrintInvalidRecords(border, header, errorFileName, numInvalidRec);
 			break;
 		case RETRIEVE_RECORD:
-			EnterSearchSubMenu(validRecords, numValidRec, userChoiceMainMenu, border.str(), header.str());
+			EnterSearchSubMenu(validRecords, numValidRec, userChoiceMainMenu, border, header);
 			break;
 		case QUIT:
 			break;
@@ -128,11 +121,26 @@ int main() {
 	return 0;
 }
 
-void GetData(CarRecord validRec[MAX_NUM_RECORDS], int& numValidRec, int& numInvalidRec, string errorFileName, string inputFileName) {
+void CarRecord::SetRecord(string ID, string modelName, int quantityOnHand, double cost) {
+	carID = ID;
+	model = modelName;
+	quantity = quantityOnHand;
+	price = cost;
+}
+
+string CarRecord::ToString() const {
+	stringstream ss;
+	ss << setw(SETW_ID) << left << carID
+		<< setw(SETW_MODEL) << model
+		<< setw(SETW_QUANTITY) << right << quantity
+		<< setw(SETW_PRICE) << fixed << setprecision(SETPRECISION) << price;
+	return ss.str();
+}
+
+void GetData(CarRecord validRec[], int& numValidRec, int& numInvalidRec, string errorFileName, string inputFileName) {
 	string tempCarID, tempModel, errMsg;
 	int tempQuantity;
 	double tempPrice;
-	bool isValidID, isValidModel, isValidQuantity, isValidPrice;
 	ifstream inFile(inputFileName);
 	ofstream errorFile(errorFileName);
 	if (!inFile) {
@@ -140,14 +148,9 @@ void GetData(CarRecord validRec[MAX_NUM_RECORDS], int& numValidRec, int& numInva
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
-	if (!errorFile) {
-		cout << "Error file not found. Exiting the program." << endl;
-		inFile.close();
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
 	if (inFile.peek() == EOF) {
 		cout << "The input file is empty. Quitting the program." << endl;
+		inFile.close();
 		system("pause");
 		exit(EXIT_FAILURE);
 	}
@@ -156,20 +159,15 @@ void GetData(CarRecord validRec[MAX_NUM_RECORDS], int& numValidRec, int& numInva
 		tempCarID = ToUpper(tempCarID);
 		tempModel = ToUpper(tempModel);
 		errMsg = "";
-		//checks data from input file
-		isValidID = IsValidID(tempCarID, errMsg);
-		isValidModel = IsValidModel(tempModel, errMsg);
-		isValidQuantity = IsValidQuantity(tempQuantity, errMsg);
-		isValidPrice = IsValidPrice(tempPrice, errMsg);
-
-		if (isValidID && isValidModel && isValidQuantity && isValidPrice) { //separates valid and invalid records
+		if (IsValidRecord(tempCarID, tempModel, tempQuantity, tempPrice, errMsg)) { //separates valid and invalid records
 			validRec[numValidRec].SetRecord(tempCarID, tempModel, tempQuantity, tempPrice);
 			numValidRec++;
 		}
 		else {
-			CarRecord temp;
-			temp.SetRecord(tempCarID, tempModel, tempQuantity, tempPrice);
-			errorFile << temp.ToString() << " " << errMsg << "\n";
+			errorFile << setw(SETW_ID) << left << tempCarID
+				<< setw(SETW_MODEL) << tempModel
+				<< setw(SETW_QUANTITY) << right << tempQuantity
+				<< setw(SETW_PRICE) << fixed << setprecision(SETPRECISION) << tempPrice << " " << errMsg << "\n";
 			numInvalidRec++;
 		}
 	}
@@ -180,7 +178,7 @@ void GetData(CarRecord validRec[MAX_NUM_RECORDS], int& numValidRec, int& numInva
 	errorFile.close();
 }
 
-void PrintValidRecords(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header) {
+void PrintValidRecords(const CarRecord validRec[], int numValidRec, string border, string header) {
 	if (numValidRec == 0) {
 		cout << "\nNO VALID RECORDS FOUND.\n";
 	}
@@ -197,11 +195,6 @@ void PrintValidRecords(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRe
 
 void PrintInvalidRecords(string border, string header, string errorFileName, int numInvalidRec) {
 	ifstream invalidRecFile(errorFileName);
-	if (!invalidRecFile) {
-		cout << "Invalid Records file not found. Exiting the program." << endl;
-		system("pause");
-		exit(EXIT_FAILURE);
-	}
 	if (invalidRecFile.peek() == EOF) {
 		cout << "\nNO INVALID RECORDS FOUND\n";
 	}
@@ -302,6 +295,17 @@ bool IsValidPrice(double price, string& errorMessage) {
 	return price > MIN_PRICE;
 }
 
+bool IsValidRecord(string id, string model, int quantity, double price, string& errMsg) {
+	bool isValidID, isValidModel, isValidQuantity, isValidPrice;
+
+	isValidID = IsValidID(id, errMsg);
+	isValidModel = IsValidModel(model, errMsg);
+	isValidQuantity = IsValidQuantity(quantity, errMsg);
+	isValidPrice = IsValidPrice(price, errMsg);
+
+	return isValidID && isValidModel && isValidQuantity && isValidPrice;
+}
+
 string ToUpper(string str) {
 	string upperCaseStr = "";
 	for (int i = 0; i < str.length(); i++) {
@@ -321,55 +325,60 @@ void ClearInvalidInput(string errMsg) {
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 }
 
-void SearchByPrice(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header) {
-	double searchPrice;
+string SearchByIdOrModel(const CarRecord validRec[], int numValidRec, string keyWord) {
 	string recordsFound = "";
-	stringstream range;
-	cout << "\nEnter the price you are looking for: \n";
-	while (!(cin >> searchPrice)) {
-		ClearInvalidInput("INVALID INPUT: You must enter a number.\nRE-ENTER:");
+	for (int i = 0; i < numValidRec; i++) {
+		string tempModel = validRec[i].GetModel(),
+			tempID = validRec[i].GetID();
+		if (tempModel.find(keyWord) != std::string::npos || tempID.find(keyWord) != std::string::npos) {
+			recordsFound += validRec[i].ToString() + "\n";
+		}
 	}
-	double lowerBound = searchPrice * (1 - SEARCH_PRICE_RANGE), upperBound = searchPrice * (1 + SEARCH_PRICE_RANGE);
-	range << "$" << fixed << setprecision(SETPRECISION) << lowerBound << " to $" << upperBound;
+	return recordsFound;
+}
+
+string SearchByPrice(const CarRecord validRec[], int numValidRec, double lowerBound, double upperBound) {
+	string recordsFound = "";
 	for (int i = 0; i < numValidRec; i++) {
 		if (validRec[i].GetPrice() <= upperBound && validRec[i].GetPrice() >= lowerBound) {
 			recordsFound += validRec[i].ToString() + "\n";
 		}
 	}
 
+	return recordsFound;
+}
+
+void PrintSearchResultsPrice(const CarRecord validRec[], int numValidRec, string border, string header) {
+	double searchPrice;
+	string recordsFound = "";
+	cout << "\nEnter the price you are looking for(Range +/- " << SEARCH_PRICE_RANGE * 100 << " %): \n";
+	while (!(cin >> searchPrice)) {
+		ClearInvalidInput("INVALID INPUT: You must enter a number.\nRE-ENTER:");
+	}
+	double lowerBound = searchPrice * (1 - SEARCH_PRICE_RANGE), upperBound = searchPrice * (1 + SEARCH_PRICE_RANGE);
+
+	recordsFound += SearchByPrice(validRec, numValidRec, lowerBound, upperBound);
+
 	if (recordsFound != "") {
-		cout << "\nRecords within the price range of " << range.str() << " found: \n"
+		cout << "\nRecords within the price range of " << "$ " << lowerBound << " to $ " << upperBound << " found: \n"
 			<< border << "\n"
 			<< header
 			<< recordsFound
 			<< border;
 	}
 	else {
-		cout << "\nNo Records within the price range of " << range.str() << " found\n";
+		cout << "\nNo Records within the price range of " << "$ " << lowerBound << " to $ " << upperBound << " found\n";
 	}
 }
 
-void SearchByModelOrID(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, string border, string header) {
+void PrintSearchResultsIdOrModel(const CarRecord validRec[], int numValidRec, string border, string header) {
 	string keyWord, recordsFound = "";
 	cout << "\nEnter the keyword you want to search by: \n";
 	cin >> keyWord;
 	keyWord = ToUpper(keyWord);
-	for (int i = 0; i < numValidRec; i++) {
-		string tempModel = validRec[i].GetModel(),
-			tempID = validRec[i].GetID();
-		bool foundModel = false;
-		size_t pos = tempModel.find(keyWord);
-		if (pos != std::string::npos) {
-			recordsFound += validRec[i].ToString() + "\n";
-			foundModel = true;
-		}
-		if (!foundModel) {
-			size_t pos = tempID.find(keyWord);
-			if (pos != std::string::npos) {
-				recordsFound += validRec[i].ToString() + "\n";
-			}
-		}
-	}
+
+	recordsFound += SearchByIdOrModel(validRec, numValidRec, keyWord);
+
 	if (recordsFound != "") {
 		cout << "\nRecords containing \"" << keyWord << "\" found: \n"
 			<< border << "\n"
@@ -378,11 +387,11 @@ void SearchByModelOrID(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRe
 			<< border;
 	}
 	else {
-		cout << "\nNo Records containing the key word \"" << keyWord << "\" found\n";
+		cout << "\nNo Records containing \"" << keyWord << "\" found\n";
 	}
 }
 
-void EnterSearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidRec, int& userChoiceMainMenu, string border, string header) {
+void EnterSearchSubMenu(const CarRecord validRec[], int numValidRec, int& userChoiceMainMenu, string border, string header) {
 	int userChoiceSearchMenu;
 	do {
 		cout << "\n\nSEARCH BY: \n"
@@ -393,10 +402,10 @@ void EnterSearchSubMenu(const CarRecord validRec[MAX_NUM_RECORDS], int numValidR
 		cin >> userChoiceSearchMenu;
 		switch (userChoiceSearchMenu) {
 		case CAR_ID_OR_NAME:
-			SearchByModelOrID(validRec, numValidRec, border, header);
+			PrintSearchResultsIdOrModel(validRec, numValidRec, border, header);
 			break;
 		case PRICE:
-			SearchByPrice(validRec, numValidRec, border, header);
+			PrintSearchResultsPrice(validRec, numValidRec, border, header);
 			break;
 		case GO_BACK:
 			cout << "GOING BACK TO MAIN MENU\n";
@@ -450,7 +459,7 @@ SEARCH BY:
 Enter the price you are looking for:
 23000
 
-Records within the price range of $19550.00 to $26450.00 found:
+Records within the price range of $ 19550.00 to $ 26450.00 found:
 --------------------------------------------------
 Car ID         Model        Quantity         Price
 
@@ -520,7 +529,7 @@ SEARCH BY:
 Enter the price you are looking for:
 1000
 
-No Records within the price range of $850.00 to $1150.00 found
+No Records within the price range of $ 850.00 to $ 1150.00 found
 
 
 SEARCH BY:
@@ -586,3 +595,46 @@ SEARCH BY:
 
 QUITTING...
 */
+
+//TEST #4 (invalid input for price)
+/*
+MENU:
+1. PRINT VALID RECORDS
+2. PRINT INVALID RECORDS
+3. SEARCH FOR CAR RECORD
+4. QUIT
+
+3
+
+
+SEARCH BY:
+1. CAR ID OR MODEL NAME
+2. PRICE
+3. GO BACK
+4. QUIT
+
+2
+
+Enter the price you are looking for(Range +/- 15.00 %):
+price
+
+INVALID INPUT: You must enter a number.
+RE-ENTER:
+j2
+
+INVALID INPUT: You must enter a number.
+RE-ENTER:
+5001
+
+No Records within the price range of $ 4250.85 to $ 5751.15 found
+
+
+SEARCH BY:
+1. CAR ID OR MODEL NAME
+2. PRICE
+3. GO BACK
+4. QUIT
+
+4
+
+QUITTING...*/
